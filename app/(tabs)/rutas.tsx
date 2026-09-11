@@ -1,3 +1,4 @@
+import SosModal from '@/components/SosModal';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
 import { XMLParser } from 'fast-xml-parser';
@@ -12,7 +13,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import MapView, { MapType, Polyline, UrlTile } from 'react-native-maps';
+import MapView, { Polyline, UrlTile } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Coordinate {
@@ -28,6 +29,7 @@ export default function RutasScreen() {
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
   const [routeDistance, setRouteDistance] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [sosVisible, setSosVisible] = useState(false);
 
   const mapRef = useRef<MapView>(null);
 
@@ -202,84 +204,87 @@ export default function RutasScreen() {
     longitudeDelta: 0.05,
   };
 
-  const getNativeMapType = (): MapType => {
-    if (customLayer === 'satelite') return 'satellite';
-    return 'standard';
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       {activeTab === 'mapa' ? (
         <View style={styles.mapContainer}>
+          {/* 1. El Mapa */}
           <MapView
-  ref={mapRef}
-  style={styles.map}
-  mapType="none"
-  initialRegion={initialRegion}
-  showsUserLocation={true}
-  showsMyLocationButton={false}
-  showsCompass={false}
->
-  {/* Capa 1: Vectorial (Google Maps Standard sin API Key) */}
-  {customLayer === 'vectorial' && (
-    <UrlTile
-      urlTemplate="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-      maximumZ={20}
-      tileSize={256}
-      zIndex={1}
-    />
-  )}
+            ref={mapRef}
+            style={styles.map}
+            mapType="none"
+            initialRegion={initialRegion}
+            showsUserLocation={true}
+            showsMyLocationButton={false}
+            showsCompass={false}
+          >
+            {/* Capa 1: Vectorial */}
+            {customLayer === 'vectorial' && (
+              <UrlTile
+                urlTemplate="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                maximumZ={20}
+                tileSize={256}
+                zIndex={1}
+              />
+            )}
 
-  {/* Capa 2: Topográfico (OpenTopoMap) */}
-  {customLayer === 'topografico' && (
-    <UrlTile
-      urlTemplate="https://a.tile.opentopomap.org/{z}/{x}/{y}.png"
-      maximumZ={17}
-      tileSize={256}
-      doubleTileSize={true}
-      zIndex={1}
-    />
-  )}
+            {/* Capa 2: Topográfico */}
+            {customLayer === 'topografico' && (
+              <UrlTile
+                urlTemplate="https://a.tile.opentopomap.org/{z}/{x}/{y}.png"
+                maximumZ={17}
+                tileSize={256}
+                doubleTileSize={true}
+                zIndex={1}
+              />
+            )}
 
-  {/* Capa 3: Ortofoto / Satélite HD actualizada (Google Hybrid Tiles) */}
-  {customLayer === 'satelite' && (
-    <UrlTile
-      urlTemplate="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
-      maximumZ={20}
-      tileSize={256}
-      zIndex={1}
-    />
-  )}
-  {/* Dibujar la línea de la ruta GPX cargada */}
-        {routeCoordinates && routeCoordinates.length > 0 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeColor="#00E5FF"
-            strokeWidth={5}
-            zIndex={99}
-          />
-        )}
-</MapView>
+            {/* Capa 3: Ortofoto / Satélite HD */}
+            {customLayer === 'satelite' && (
+              <UrlTile
+                urlTemplate="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                maximumZ={20}
+                tileSize={256}
+                zIndex={1}
+              />
+            )}
 
-          {/* Badge de Ruta Activa */}
-          {gpxFileName && (
-            <View style={styles.routeBadge}>
-              <Text style={styles.routeBadgeText}>📍 {gpxFileName}</Text>
-              {routeDistance && (
-                <Text style={styles.routeDistanceText}>📏 {routeDistance} km</Text>
-              )}
-            </View>
-          )}
+            {/* Dibujar la línea de la ruta GPX cargada */}
+            {routeCoordinates && routeCoordinates.length > 0 && (
+              <Polyline
+                coordinates={routeCoordinates}
+                strokeColor="#00E5FF"
+                strokeWidth={5}
+                zIndex={99}
+              />
+            )}
+          </MapView>
 
-          {/* Botón Menú */}
+          {/* Botón flotante SOS */}
           <TouchableOpacity
-            style={styles.hamburgerButton}
-            onPress={() => setMenuVisible(true)}>
-            <Text style={styles.hamburgerIcon}>☰</Text>
+            style={styles.btnSosFlotante}
+            onPress={() => setSosVisible(true)}
+          >
+            <Text style={styles.btnSosTexto}>🚨 SOS</Text>
           </TouchableOpacity>
 
-          {/* Controles del Mapa */}
+          {/* Botón Menú / Capas */}
+          <TouchableOpacity
+            style={styles.hamburgerButton}
+            onPress={() => setMenuVisible(true)}
+          >
+            <Text style={styles.hamburgerIcon}>⚙️</Text>
+          </TouchableOpacity>
+
+          {/* Controles de Zoom y Ubicación */}
           <View style={styles.controlsCluster}>
+            <TouchableOpacity
+              style={[styles.controlBtn, styles.locationBtn]}
+              onPress={goToMyLocation}
+            >
+              <Text style={styles.controlText}>🎯</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.controlBtn} onPress={resetHeading}>
               <Text style={styles.controlText}>🧭</Text>
             </TouchableOpacity>
@@ -290,31 +295,24 @@ export default function RutasScreen() {
               </TouchableOpacity>
               <View style={styles.controlDivider} />
               <TouchableOpacity style={styles.zoomBtnBottom} onPress={zoomOut}>
-                <Text style={styles.zoomText}>−</Text>
+                <Text style={styles.zoomText}>-</Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={[styles.controlBtn, styles.locationBtn]} onPress={goToMyLocation}>
-              <Text style={styles.controlText}>🎯</Text>
-            </TouchableOpacity>
           </View>
 
-          {/* Modal Menú */}
-          <Modal
-            transparent={true}
-            visible={menuVisible}
-            animationType="fade"
-            onRequestClose={() => setMenuVisible(false)}>
+          {/* Modal de emergencia SOS */}
+          <SosModal visible={sosVisible} onClose={() => setSosVisible(false)} />
+
+          {/* Modal de Opciones / Capas / GPX */}
+          <Modal visible={menuVisible} transparent animationType="fade">
             <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
               <View style={styles.modalOverlay}>
                 <TouchableWithoutFeedback>
                   <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Herramientas de Ruta</Text>
-                    
+                    <Text style={styles.menuTitle}>Gesti&oacute;n de Ruta</Text>
                     <TouchableOpacity style={styles.importMenuBtn} onPress={pickGPXFile}>
-                      <Text style={styles.importMenuText}>📂 Importar GPX</Text>
+                      <Text style={styles.importMenuText}>📂 Cargar GPX</Text>
                     </TouchableOpacity>
-
                     {routeCoordinates.length > 0 && (
                       <TouchableOpacity style={styles.clearMenuBtn} onPress={clearRoute}>
                         <Text style={styles.clearMenuText}>🗑️ Limpiar Ruta</Text>
@@ -323,42 +321,24 @@ export default function RutasScreen() {
 
                     <View style={styles.divider} />
 
-                    <Text style={styles.menuSubtitle}>Capa del mapa</Text>
-                    
+                    <Text style={styles.menuSubtitle}>Capas de Mapa</Text>
                     <TouchableOpacity
-                      style={[
-                        styles.menuOption,
-                        customLayer === 'vectorial' && styles.menuOptionActive,
-                      ]}
-                      onPress={() => {
-                        setCustomLayer('vectorial');
-                        setMenuVisible(false);
-                      }}>
+                      style={[styles.menuOption, customLayer === 'topografico' && styles.menuOptionActive]}
+                      onPress={() => { setCustomLayer('topografico'); setMenuVisible(false); }}
+                    >
+                      <Text style={styles.menuOptionText}>🏔️ Topogr&aacute;fico</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.menuOption, customLayer === 'satelite' && styles.menuOptionActive]}
+                      onPress={() => { setCustomLayer('satelite'); setMenuVisible(false); }}
+                    >
+                      <Text style={styles.menuOptionText}>🛰️ Ortofoto HD</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.menuOption, customLayer === 'vectorial' && styles.menuOptionActive]}
+                      onPress={() => { setCustomLayer('vectorial'); setMenuVisible(false); }}
+                    >
                       <Text style={styles.menuOptionText}>🗺️ Vectorial</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.menuOption,
-                        customLayer === 'topografico' && styles.menuOptionActive,
-                      ]}
-                      onPress={() => {
-                        setCustomLayer('topografico');
-                        setMenuVisible(false);
-                      }}>
-                      <Text style={styles.menuOptionText}>⛰️ Topográfico</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.menuOption,
-                        customLayer === 'satelite' && styles.menuOptionActive,
-                      ]}
-                      onPress={() => {
-                        setCustomLayer('satelite');
-                        setMenuVisible(false);
-                      }}>
-                      <Text style={styles.menuOptionText}>🛰️ Ortofoto</Text>
                     </TouchableOpacity>
                   </View>
                 </TouchableWithoutFeedback>
@@ -373,7 +353,7 @@ export default function RutasScreen() {
             {gpxFileName ? `🏔️ ${gpxFileName.replace('.gpx', '')}` : '🏔️ Sin Ruta Cargada'}
           </Text>
           <Text style={styles.routeSubtitle}>
-            Ficha técnica de la expedición e itinerario de paso.
+            Ficha t&eacute;cnica de la expedici&oacute;n e itinerario de paso.
           </Text>
 
           <View style={styles.statsGrid}>
@@ -401,14 +381,14 @@ export default function RutasScreen() {
             </View>
           </View>
 
-          <Text style={styles.sectionHeader}>⏰ Itinerario de Salida</Text>
+          <Text style={sectionHeaderStyle}>⏰ Itinerario de Salida</Text>
 
           <View style={styles.timelineItem}>
             <Text style={styles.timeText}>05:00 AM</Text>
             <View style={styles.timelineBody}>
               <Text style={styles.timelineTitle}>Punto de Encuentro & Check</Text>
               <Text style={styles.timelineDesc}>
-                Revisión de equipo individual y charla de seguridad.
+                Revisi&oacute;n de equipo individual y charla de seguridad.
               </Text>
             </View>
           </View>
@@ -426,9 +406,9 @@ export default function RutasScreen() {
           <View style={styles.timelineItem}>
             <Text style={styles.timeText}>11:30 AM</Text>
             <View style={styles.timelineBody}>
-              <Text style={styles.timelineTitle}>Cumbre / Punto Máximo</Text>
+              <Text style={styles.timelineTitle}>Cumbre / Punto M&aacute;ximo</Text>
               <Text style={styles.timelineDesc}>
-                Hidratación, fotos y evaluación de clima para descenso.
+                Hidrataci&oacute;n, fotos y evaluaci&oacute;n de clima para descenso.
               </Text>
             </View>
           </View>
@@ -436,9 +416,9 @@ export default function RutasScreen() {
           <View style={styles.timelineItem}>
             <Text style={styles.timeText}>03:00 PM</Text>
             <View style={styles.timelineBody}>
-              <Text style={styles.timelineTitle}>Retorno a Vehículos</Text>
+              <Text style={styles.timelineTitle}>Retorno a Veh&iacute;culos</Text>
               <Text style={styles.timelineDesc}>
-                Cierre de expedición y conteo de participantes.
+                Cierre de expedici&oacute;n y conteo de participantes.
               </Text>
             </View>
           </View>
@@ -450,7 +430,8 @@ export default function RutasScreen() {
         <View style={styles.tabSelector}>
           <TouchableOpacity
             style={[styles.tabButton, activeTab === 'mapa' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('mapa')}>
+            onPress={() => setActiveTab('mapa')}
+          >
             <Text style={[styles.tabText, activeTab === 'mapa' && styles.tabTextActive]}>
               🗺️ Mapa & GPX
             </Text>
@@ -458,7 +439,8 @@ export default function RutasScreen() {
 
           <TouchableOpacity
             style={[styles.tabButton, activeTab === 'itinerario' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('itinerario')}>
+            onPress={() => setActiveTab('itinerario')}
+          >
             <Text style={[styles.tabText, activeTab === 'itinerario' && styles.tabTextActive]}>
               📋 Ficha & Itinerario
             </Text>
@@ -468,6 +450,13 @@ export default function RutasScreen() {
     </SafeAreaView>
   );
 }
+
+const sectionHeaderStyle = {
+  fontSize: 16,
+  fontWeight: 'bold' as const,
+  color: '#F8FAFC',
+  marginBottom: 12,
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -480,6 +469,22 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
+  },
+  btnSosFlotante: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    elevation: 5,
+    zIndex: 10,
+  },
+  btnSosTexto: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   bottomTabContainer: {
     position: 'absolute',
@@ -518,27 +523,6 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#0F172A',
   },
-  routeBadge: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    backgroundColor: 'rgba(30, 41, 59, 0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  routeBadgeText: {
-    color: '#38BDF8',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  routeDistanceText: {
-    color: '#F8FAFC',
-    fontSize: 11,
-    marginTop: 2,
-  },
   hamburgerButton: {
     position: 'absolute',
     top: 16,
@@ -552,6 +536,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334155',
     elevation: 4,
+    zIndex: 10,
   },
   hamburgerIcon: {
     color: '#38BDF8',
@@ -564,6 +549,7 @@ const styles = StyleSheet.create({
     bottom: 80,
     alignItems: 'center',
     gap: 10,
+    zIndex: 10,
   },
   controlBtn: {
     backgroundColor: 'rgba(30, 41, 59, 0.95)',
@@ -724,12 +710,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#38BDF8',
     marginTop: 2,
-  },
-  sectionHeader: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#F8FAFC',
-    marginBottom: 12,
   },
   timelineItem: {
     flexDirection: 'row',
