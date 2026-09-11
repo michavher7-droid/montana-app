@@ -1,5 +1,4 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
 import { Text } from 'react-native';
 
 export default function TabLayout() {
@@ -13,7 +12,8 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: '#38BDF8',
         tabBarInactiveTintColor: '#64748B',
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
@@ -26,6 +26,13 @@ export default function TabLayout() {
         options={{
           title: 'Rutas',
           tabBarIcon: () => <Text style={{ fontSize: 18 }}>🥾</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="checklist"
+        options={{
+          title: 'Equipo',
+          tabBarIcon: () => <Text style={{ fontSize: 18 }}>🎒</Text>,
         }}
       />
       <Tabs.Screen
