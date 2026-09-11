@@ -12,7 +12,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import MapView, { MapType, UrlTile } from 'react-native-maps';
+import MapView, { MapType, Polyline, UrlTile } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Coordinate {
@@ -250,6 +250,15 @@ export default function RutasScreen() {
       zIndex={1}
     />
   )}
+  {/* Dibujar la línea de la ruta GPX cargada */}
+        {routeCoordinates && routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeColor="#00E5FF"
+            strokeWidth={5}
+            zIndex={99}
+          />
+        )}
 </MapView>
 
           {/* Badge de Ruta Activa */}
