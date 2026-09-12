@@ -33,12 +33,18 @@ export default function RutasScreen() {
 
   const mapRef = useRef<MapView>(null);
 
-  useEffect(() => {
+useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        let currentLocation = await Location.getCurrentPositionAsync({});
-        setLocation(currentLocation);
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let currentLocation = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          setLocation(currentLocation);
+        }
+      } catch (error) {
+        console.warn("Error al obtener ubicación:", error);
       }
     })();
   }, []);
@@ -52,7 +58,7 @@ export default function RutasScreen() {
       const R = 6371e3; // Radio de la Tierra en metros
       const φ1 = (p1.latitude * Math.PI) / 180;
       const φ2 = (p2.latitude * Math.PI) / 180;
-      const Δφ = ((p2.latitude - p1.latitude) * Math.PI) / 180;
+      const Δφ = ((p2.latitude - p1.latitude) * Math.PI) / 180;|
       const Δλ = ((p2.longitude - p1.longitude) * Math.PI) / 180;
 
       const a =
